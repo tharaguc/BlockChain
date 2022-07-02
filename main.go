@@ -9,13 +9,13 @@ import (
 	"time"
 )
 
-//Block
+//Blockの情報
 type Block struct {
 	nonce        int
 	previousHash [32]byte
 	timestamp    int64
 	//複数のトランザクション
-	transactions []string
+	transactions []*Transaction
 }
 
 //Blockのプリント用メソッド
@@ -23,7 +23,9 @@ func (b *Block) Print() {
 	fmt.Printf("timestamp    : %d\n", b.timestamp)
 	fmt.Printf("noce         : %d\n", b.nonce)
 	fmt.Printf("previousHash : %x\n", b.previousHash)
-	fmt.Printf("transactions : %s\n", b.transactions)
+	for _, t := range b.transactions {
+		t.Print()
+	}
 }
 
 //BlockのHash化
@@ -32,13 +34,13 @@ func (b *Block) Hash() [32]byte {
 	return sha256.Sum256(m)
 }
 
-//適切にJSONMarshalするメソッド（json.Marshalの上書き）
+//適切にJSONMarshalするメソッドオーバーライド（json.Marshalの上書き）小文字のメンバはmarshalできないがjsonでは小文字で扱いたい
 func (b *Block) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
-		Timestamp    int64    `json:"timestamp"`
-		Nonce        int      `json:"nonce"`
-		PreviousHash [32]byte `json:"previous_hash"`
-		Transactions []string `json:"transactions"`
+		Timestamp    int64          `json:"timestamp"`
+		Nonce        int            `json:"nonce"`
+		PreviousHash [32]byte       `json:"previous_hash"`
+		Transactions []*Transaction `json:"transactions"`
 	}{
 		Timestamp:    b.timestamp,
 		Nonce:        b.nonce,
@@ -48,17 +50,19 @@ func (b *Block) MarshalJSON() ([]byte, error) {
 }
 
 //新規Block作成
-func NewBlock(nonce int, previousHash [32]byte) *Block {
+func NewBlock(nonce int, previousHash [32]byte, transactions []*Transaction) *Block {
 	b := new(Block)
 	b.timestamp = time.Now().UnixNano()
 	b.nonce = nonce
 	b.previousHash = previousHash
+	b.transactions = transactions
 	return b
 }
 
-//BlockChain
+//BlockChainの情報
 type BlockChain struct {
-	transactionPool []string
+	//Transactionの配列
+	transactionPool []*Transaction
 	//Blockの配列
 	chain []*Block
 }
@@ -74,8 +78,9 @@ func NewBlockChain() *BlockChain {
 
 //BlockをChainに追加するメソッド
 func (bc *BlockChain) AddBlock(nonce int, previousHash [32]byte) *Block {
-	b := NewBlock(nonce, previousHash)
+	b := NewBlock(nonce, previousHash, bc.transactionPool)
 	bc.chain = append(bc.chain, b)
+	bc.transactionPool = []*Transaction{} //Poolを初期化
 	return b
 }
 
@@ -90,11 +95,51 @@ func (bc *BlockChain) Print() {
 		if i == 0 {
 			fmt.Printf("%s Genesis Block %s\n", strings.Repeat("=", 25), strings.Repeat("=", 25))
 		} else {
-			fmt.Printf("%s Block %d %s\n", strings.Repeat("=", 25), i, strings.Repeat("=", 25))
+			fmt.Printf("\n%s Block %d %s\n", strings.Repeat("=", 25), i, strings.Repeat("=", 25))
 		}
 		block.Print()
 	}
 	fmt.Printf("%s\n", strings.Repeat("*", 25))
+}
+
+//Transactionの情報
+type Transaction struct {
+	senderAddress    string
+	recipientAddress string
+	value            float32
+}
+
+//Transactionを作成するメソッド
+func NewTransaction(sender string, recipient string, value float32) *Transaction {
+	return &Transaction{sender, recipient, value}
+}
+
+//Transaction情報のプリント用メソッド
+func (t *Transaction) Print() {
+	fmt.Printf("%s Transaction %s\n", strings.Repeat("-", 6), strings.Repeat("-", 6))
+	fmt.Printf("senderAdress     : %s\n", t.senderAddress)
+	fmt.Printf("recipientAdress  : %s\n", t.recipientAddress)
+	fmt.Printf("value            : %.2f\n", t.value)
+	fmt.Println(strings.Repeat("-", 25))
+}
+
+//適切にJSONMarshalするメソッドオーバーライド（json.Marshalの上書き）小文字のメンバはmarshalできないがjsonでは小文字で扱いたい
+func (t *Transaction) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		SenderAddress    string  `json:"senderAddress"`
+		RecipientAddress string  `json:"recipientAddress"`
+		Value            float32 `json:"value"`
+	}{
+		SenderAddress:    t.senderAddress,
+		RecipientAddress: t.recipientAddress,
+		Value:            t.value,
+	})
+}
+
+//TransactionをPoolに追加するメソッド
+func (bc *BlockChain) AddTransaction(sender string, recipient string, value float32) {
+	t := NewTransaction(sender, recipient, value)
+	bc.transactionPool = append(bc.transactionPool, t)
 }
 
 func init() {
@@ -104,8 +149,12 @@ func init() {
 func main() {
 	blockChain := NewBlockChain()
 
+	blockChain.AddTransaction("A", "B", 3.0)
 	preHash := blockChain.LastBlock().Hash()
 	blockChain.AddBlock(1, preHash)
+
+	blockChain.AddTransaction("C", "D", 4.2)
+	blockChain.AddTransaction("B", "C", 3.34)
 	preHash = blockChain.LastBlock().Hash()
 	blockChain.AddBlock(2, preHash)
 	blockChain.Print()

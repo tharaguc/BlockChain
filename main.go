@@ -12,6 +12,7 @@ import (
 const (
 	MINING_DIFFICULTY = 3
 	MINING_SENDER     = "NETWORK"
+	MINER_ADDRESS     = "Miner"
 	MINING_REWARD     = 1.00
 )
 
@@ -36,10 +37,10 @@ func (b *Block) Print() {
 //BlockのHash化
 func (b *Block) Hash() [32]byte {
 	m, _ := json.Marshal(b)
-	return sha256.Sum256([]byte(m))
+	return sha256.Sum256(m)
 }
 
-//適切にJSONMarshalするメソッドオーバーライド（json.Marshalの上書き）小文字のメンバはmarshalできないがjsonでは小文字で扱いたい
+//適切にJSONMarshalするメソッドオーバーライド（json.Marshalの上書き）小文字のフィールドはmarshalできないがjsonでは小文字で扱いたい
 func (b *Block) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		Timestamp    int64          `json:"timestamp"`
@@ -91,6 +92,25 @@ func (bc *BlockChain) Mining() bool {
 	bc.AddBlock(nonce, preHash)
 	log.Println("action=mining, status=success")
 	return true
+}
+
+//アドレスをもとにtransactionによる差分を計算
+func (bc *BlockChain) CalculateTotalAmount(address string) float32 {
+	var total float32 = 0.00
+
+	//全てのtransaction参照
+	for _, b := range bc.chain {
+		for _, t := range b.transactions {
+			value := t.value
+			if address == t.recipientAddress {
+				total += value
+			}
+			if address == t.senderAddress {
+				total -= value
+			}
+		}
+	}
+	return total
 }
 
 //BlockをChainに追加するメソッド
@@ -193,14 +213,19 @@ func init() {
 }
 
 func main() {
-	myAddress := "minier_address"
+	myAddress := MINER_ADDRESS
 	blockChain := NewBlockChain(myAddress)
 
 	blockChain.AddTransaction("A", "B", 3.0)
 	blockChain.Mining()
 
-	blockChain.AddTransaction("C", "D", 4.2)
-	blockChain.AddTransaction("B", "C", 3.34)
+	blockChain.AddTransaction("B", "C", 4.2)
+	blockChain.AddTransaction("C", "A", 3.34)
 	blockChain.Mining()
 	blockChain.Print()
+
+	fmt.Printf("my %.2f\n", blockChain.CalculateTotalAmount(myAddress))
+	fmt.Printf("A  %.2f\n", blockChain.CalculateTotalAmount("A"))
+	fmt.Printf("B  %.2f\n", blockChain.CalculateTotalAmount("B"))
+	fmt.Printf("C  %.2f\n", blockChain.CalculateTotalAmount("C"))
 }

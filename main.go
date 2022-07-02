@@ -9,11 +9,13 @@ import (
 	"time"
 )
 
+const MINING_DIFFICULTY = 3
+
 //Blockの情報
 type Block struct {
+	timestamp    int64
 	nonce        int
 	previousHash [32]byte
-	timestamp    int64
 	//複数のトランザクション
 	transactions []*Transaction
 }
@@ -21,7 +23,7 @@ type Block struct {
 //Blockのプリント用メソッド
 func (b *Block) Print() {
 	fmt.Printf("timestamp    : %d\n", b.timestamp)
-	fmt.Printf("noce         : %d\n", b.nonce)
+	fmt.Printf("nonce        : %d\n", b.nonce)
 	fmt.Printf("previousHash : %x\n", b.previousHash)
 	for _, t := range b.transactions {
 		t.Print()
@@ -31,7 +33,7 @@ func (b *Block) Print() {
 //BlockのHash化
 func (b *Block) Hash() [32]byte {
 	m, _ := json.Marshal(b)
-	return sha256.Sum256(m)
+	return sha256.Sum256([]byte(m))
 }
 
 //適切にJSONMarshalするメソッドオーバーライド（json.Marshalの上書き）小文字のメンバはmarshalできないがjsonでは小文字で扱いたい
@@ -142,6 +144,35 @@ func (bc *BlockChain) AddTransaction(sender string, recipient string, value floa
 	bc.transactionPool = append(bc.transactionPool, t)
 }
 
+//PoolのTransactionsをコピーするメソッド
+func (bc *BlockChain) CopyTransactionsFromPool() []*Transaction {
+	copy := make([]*Transaction, 0)
+	for _, t := range bc.transactionPool {
+		copy = append(copy, NewTransaction(t.senderAddress, t.recipientAddress, t.value))
+	}
+	return copy
+}
+
+//nonceが正しいかどうか判定するメソッド
+func (bc *BlockChain) IsValidProof(nonce int, preHash [32]byte, transactions []*Transaction, difficulty int) bool {
+	zeros := strings.Repeat("0", difficulty)
+	guessBlock := Block{0, nonce, preHash, transactions}
+	guessBlockHash := fmt.Sprintf("%x", guessBlock.Hash()) //byte -> Base16に変換
+	return guessBlockHash[:difficulty] == zeros            //最初の{difficulty}文字判定
+}
+
+//正しいnonceを求めるメソッド
+func (bc *BlockChain) ProofOfWork() int {
+	transactions := bc.CopyTransactionsFromPool()
+	preHash := bc.LastBlock().Hash()
+	nonce := 0
+	//正しいnonceになるまでループ
+	for !bc.IsValidProof(nonce, preHash, transactions, MINING_DIFFICULTY) {
+		nonce += 1
+	}
+	return nonce
+}
+
 func init() {
 	log.SetPrefix("BlockChain: ")
 }
@@ -151,11 +182,13 @@ func main() {
 
 	blockChain.AddTransaction("A", "B", 3.0)
 	preHash := blockChain.LastBlock().Hash()
-	blockChain.AddBlock(1, preHash)
+	nonce := blockChain.ProofOfWork()
+	blockChain.AddBlock(nonce, preHash)
 
 	blockChain.AddTransaction("C", "D", 4.2)
 	blockChain.AddTransaction("B", "C", 3.34)
 	preHash = blockChain.LastBlock().Hash()
-	blockChain.AddBlock(2, preHash)
+	nonce = blockChain.ProofOfWork()
+	blockChain.AddBlock(nonce, preHash)
 	blockChain.Print()
 }

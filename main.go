@@ -9,14 +9,17 @@ import (
 	"time"
 )
 
-const MINING_DIFFICULTY = 3
+const (
+	MINING_DIFFICULTY = 3
+	MINING_SENDER     = "NETWORK"
+	MINING_REWARD     = 1.00
+)
 
 //Blockの情報
 type Block struct {
 	timestamp    int64
 	nonce        int
 	previousHash [32]byte
-	//複数のトランザクション
 	transactions []*Transaction
 }
 
@@ -63,19 +66,31 @@ func NewBlock(nonce int, previousHash [32]byte, transactions []*Transaction) *Bl
 
 //BlockChainの情報
 type BlockChain struct {
-	//Transactionの配列
 	transactionPool []*Transaction
-	//Blockの配列
-	chain []*Block
+	chain           []*Block
+	//マイナーのアドレス
+	minerAddress string
 }
 
 //BlockChainの作成（初期化）
-func NewBlockChain() *BlockChain {
+func NewBlockChain(minerAddress string) *BlockChain {
 	//Genesis Block
 	b := &Block{}
 	bc := new(BlockChain)
+	bc.minerAddress = minerAddress
 	bc.AddBlock(0, b.Hash())
 	return bc
+}
+
+//マイニングメソッド
+func (bc *BlockChain) Mining() bool {
+	//ネットワークからマイナーへのTransaction追加
+	bc.AddTransaction(MINING_SENDER, bc.minerAddress, MINING_REWARD)
+	nonce := bc.ProofOfWork()
+	preHash := bc.LastBlock().Hash()
+	bc.AddBlock(nonce, preHash)
+	log.Println("action=mining, status=success")
+	return true
 }
 
 //BlockをChainに追加するメソッド
@@ -178,17 +193,14 @@ func init() {
 }
 
 func main() {
-	blockChain := NewBlockChain()
+	myAddress := "minier_address"
+	blockChain := NewBlockChain(myAddress)
 
 	blockChain.AddTransaction("A", "B", 3.0)
-	preHash := blockChain.LastBlock().Hash()
-	nonce := blockChain.ProofOfWork()
-	blockChain.AddBlock(nonce, preHash)
+	blockChain.Mining()
 
 	blockChain.AddTransaction("C", "D", 4.2)
 	blockChain.AddTransaction("B", "C", 3.34)
-	preHash = blockChain.LastBlock().Hash()
-	nonce = blockChain.ProofOfWork()
-	blockChain.AddBlock(nonce, preHash)
+	blockChain.Mining()
 	blockChain.Print()
 }

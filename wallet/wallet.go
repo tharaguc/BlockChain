@@ -5,7 +5,9 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
+	"math/big"
 
 	"github.com/btcsuite/btcutil/base58"
 	"golang.org/x/crypto/ripemd160"
@@ -82,4 +84,49 @@ func (w *Wallet) PublicKey() *ecdsa.PublicKey {
 //publicKeyの文字を返すメソッド
 func (w *Wallet) PublicKeyStr() string {
 	return fmt.Sprintf("%x%x", w.privateKey.X.Bytes(), w.publicKey.Y.Bytes())
+}
+
+//walletからのtransaction情報
+type Transaction struct {
+	senderPrivateKey *ecdsa.PrivateKey
+	senderPublicKey  *ecdsa.PublicKey
+	senderAddress    string
+	recipientAddress string
+	value            float32
+}
+
+//transactionを作成するメソッド
+func NewTransaction(priKey *ecdsa.PrivateKey, pubKey *ecdsa.PublicKey, sender string, recipient string, value float32) *Transaction {
+	return &Transaction{priKey, pubKey, sender, recipient, value}
+}
+
+//Signatureの情報
+type Signature struct {
+	R *big.Int
+	S *big.Int
+}
+
+//Signature生成メソッド
+func (t *Transaction) GenSignature() *Signature {
+	m, _ := json.Marshal(t)
+	h := sha256.Sum256(m)
+	r, s, _ := ecdsa.Sign(rand.Reader, t.senderPrivateKey, h[:])
+	return &Signature{r, s}
+}
+
+//marshalメソッドカスタム
+func (t *Transaction) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		Sender    string  `json:"sender_address"`
+		Recipient string  `json:"recipient_address"`
+		Value     float32 `json:"value"`
+	}{
+		Sender:    t.senderAddress,
+		Recipient: t.recipientAddress,
+		Value:     t.value,
+	})
+}
+
+func (s *Signature) String() string {
+	return fmt.Sprintf("%x%x", s.R, s.S)
 }

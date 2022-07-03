@@ -1,36 +1,31 @@
 package main
 
 import (
-	"bc/wallet"
 	"fmt"
+	"gobc/block"
+	"gobc/wallet"
 	"log"
 )
 
 func init() {
-	log.SetPrefix("BlockChain: ")
+	log.SetPrefix("NETWORK: ")
 }
 
 func main() {
-	w := wallet.NewWallet()
-	fmt.Println(w.PrivateKeyStr())
-	fmt.Println(w.PublicKeyStr())
-	fmt.Println(w.Address())
+	wm := wallet.NewWallet()
+	wa := wallet.NewWallet()
+	wb := wallet.NewWallet()
 
-	t := wallet.NewTransaction(w.PrivateKey(), w.PublicKey(), w.Address(), "B", 1.00)
-	fmt.Printf("signature %s\n", t.GenSignature())
-	// myAddress := MINER_ADDRESS
-	// blockChain := NewBlockChain(myAddress)
+	t := wallet.NewTransaction(wa.PrivateKey(), wa.PublicKey(), wa.Address(), wb.Address(), 1.01)
 
-	// blockChain.AddTransaction("A", "B", 3.0)
-	// blockChain.Mining()
+	bc := block.NewBlockChain(wm.Address())
+	isAdded := bc.AddTransaction(wa.Address(), wb.Address(), 1.01, wa.PublicKey(), t.GenSignature())
+	fmt.Println("Added? ", isAdded)
 
-	// blockChain.AddTransaction("B", "C", 4.2)
-	// blockChain.AddTransaction("C", "A", 3.34)
-	// blockChain.Mining()
-	// blockChain.Print()
+	bc.Mining()
+	bc.Print()
 
-	// fmt.Printf("my %.2f\n", blockChain.CalculateTotalAmount(myAddress))
-	// fmt.Printf("A  %.2f\n", blockChain.CalculateTotalAmount("A"))
-	// fmt.Printf("B  %.2f\n", blockChain.CalculateTotalAmount("B"))
-	// fmt.Printf("C  %.2f\n", blockChain.CalculateTotalAmount("C"))
+	fmt.Printf("A : %.2f\n", bc.CalculateTotalAmount(wa.Address()))
+	fmt.Printf("B : %.2f\n", bc.CalculateTotalAmount(wb.Address()))
+	fmt.Printf("W : %.2f\n", bc.CalculateTotalAmount(wm.Address()))
 }

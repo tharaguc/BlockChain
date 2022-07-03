@@ -1,4 +1,4 @@
-module bc
+module gobc
 
 go 1.18
 

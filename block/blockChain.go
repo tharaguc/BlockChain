@@ -1,9 +1,11 @@
 package block
 
 import (
+	"crypto/ecdsa"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"gobc/utils"
 	"log"
 	"strings"
 	"time"
@@ -86,7 +88,7 @@ func NewBlockChain(minerAddress string) *BlockChain {
 //マイニングメソッド
 func (bc *BlockChain) Mining() bool {
 	//ネットワークからマイナーへのTransaction追加
-	bc.AddTransaction(MINING_SENDER, bc.minerAddress, MINING_REWARD)
+	bc.AddTransaction(MINING_SENDER, bc.minerAddress, MINING_REWARD, nil, nil)
 	nonce := bc.ProofOfWork()
 	preHash := bc.LastBlock().Hash()
 	bc.AddBlock(nonce, preHash)
@@ -163,8 +165,8 @@ func (t *Transaction) Print() {
 //適切にJSONMarshalするメソッドオーバーライド（json.Marshalの上書き）小文字のメンバはmarshalできないがjsonでは小文字で扱いたい
 func (t *Transaction) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
-		SenderAddress    string  `json:"senderAddress"`
-		RecipientAddress string  `json:"recipientAddress"`
+		SenderAddress    string  `json:"sender_address"`
+		RecipientAddress string  `json:"recipient_address"`
 		Value            float32 `json:"value"`
 	}{
 		SenderAddress:    t.senderAddress,
@@ -173,10 +175,38 @@ func (t *Transaction) MarshalJSON() ([]byte, error) {
 	})
 }
 
+//transactionのSignを認証するメソッド
+func (bc *BlockChain) VerifyTransactionSign(senderPubKey *ecdsa.PublicKey, s *utils.Signature, t *Transaction) bool {
+	m, _ := json.Marshal(t)
+	h := sha256.Sum256([]byte(m))
+	return ecdsa.Verify(senderPubKey, h[:], s.R, s.S)
+}
+
 //TransactionをPoolに追加するメソッド
-func (bc *BlockChain) AddTransaction(sender string, recipient string, value float32) {
+func (bc *BlockChain) AddTransaction(sender string, recipient string, value float32, senderPubKey *ecdsa.PublicKey, s *utils.Signature) bool {
 	t := NewTransaction(sender, recipient, value)
-	bc.transactionPool = append(bc.transactionPool, t)
+
+	//マイニング報酬の場合
+	if sender == MINING_SENDER {
+		bc.transactionPool = append(bc.transactionPool, t)
+		return true
+	}
+
+	if bc.VerifyTransactionSign(senderPubKey, s, t) {
+
+		/*
+			if bc.CalculateTotalAmount(sender) < value {
+				log.Println("Error: Not enough balance in a wallet")
+				return false
+			}
+		*/
+
+		bc.transactionPool = append(bc.transactionPool, t)
+		return true
+	} else {
+		log.Println("Error: Verify TransactionSign")
+	}
+	return false
 }
 
 //PoolのTransactionsをコピーするメソッド

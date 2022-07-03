@@ -10,7 +10,7 @@ import (
 //Walletの情報
 type Wallet struct {
 	privateKey *ecdsa.PrivateKey
-	publicKey *ecdsa.PublicKey
+	publicKey  *ecdsa.PublicKey
 }
 
 //Wallet作成

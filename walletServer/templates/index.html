@@ -5,7 +5,9 @@
     <title>Wallet</title>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
     <script>
+        //最初に走る関数
         $(function() {
+            //walletの作成をrequest
             $.ajax({
                 url: '/wallet',
                 type: 'POST',
@@ -18,6 +20,38 @@
                 error: function(error) {
                     console.error(error);
                 }
+            })
+
+            // Wallet Serverにtransaction情報をrequest
+            $('#send_money_button').click(function() {
+                let confirm_result = confirm('Are you sure to send?');
+                if (confirm_result !== true) {
+                    alert('Canceled');
+                    return
+                }
+
+                let transaction_data = {
+                    'sender_private_key': $('#private_key').val(),
+                    'sender_address': $('#blockchain_address').val(),
+                    'recipient_address': $('#recipient_blockchain_address').val(),
+                    'sender_public_key': $('#public_key').val(),
+                    'value': $('#send_amount').val(),
+                };
+
+                $.ajax({
+                    url: '/transaction',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(transaction_data),
+                    success: function(response) {
+                        console.info(response);
+                        alert('Send success');
+                    },
+                    error: function(response) {
+                        consol.error(response);
+                        alert('Send failed');
+                    }
+                })
             })
         })
     </script>

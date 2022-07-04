@@ -44,8 +44,8 @@
                     contentType: 'application/json',
                     data: JSON.stringify(transaction_data),
                     success: function(response) {
-                        if ($.parseJSON(response).message === "fail") {
-                            alert("failed")
+                        if ($.parseJSON(JSON.stringify(response)).message == "fail") {
+                            alert("faild");
                             return
                         }
                         alert('Send success');

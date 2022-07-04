@@ -99,6 +99,11 @@ func (bc *BlockChain) LastBlock() *Block {
 	return bc.chain[len(bc.chain)-1]
 }
 
+//transactionPoolを返すメソッド
+func (bc *BlockChain) TransactionPool() []*Transaction {
+	return bc.transactionPool
+}
+
 //BlockChainのプリント用メソッド
 func (bc *BlockChain) Print() {
 	for i, block := range bc.chain {
@@ -117,6 +122,14 @@ func (bc *BlockChain) VerifyTransactionSign(senderPubKey *ecdsa.PublicKey, s *ut
 	m, _ := json.Marshal(t)
 	h := sha256.Sum256([]byte(m))
 	return ecdsa.Verify(senderPubKey, h[:], s.R, s.S)
+}
+
+//Transactionを追加し他のノードとシンクさせるメソッド
+func (bc *BlockChain) CreateTransaction(sender string, recipient string, value float32, senderPubKey *ecdsa.PublicKey, s *utils.Signature) bool {
+	isTransacted := bc.AddTransaction(sender, recipient, value, senderPubKey, s)
+	//todo
+	//sync other nodes
+	return isTransacted
 }
 
 //TransactionをPoolに追加するメソッド

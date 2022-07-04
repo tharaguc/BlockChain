@@ -125,5 +125,6 @@ func (wsv *WalletServer) Run() {
 	http.HandleFunc("/", wsv.Index)
 	http.HandleFunc("/wallet", wsv.Wallet)
 	http.HandleFunc("/transaction", wsv.CreateTransaction)
+	fmt.Printf("Wallet Server started on PORT: %v\n", wsv.Port())
 	log.Fatal(http.ListenAndServe("0.0.0.0:"+strconv.Itoa(int(wsv.Port())), nil))
 }

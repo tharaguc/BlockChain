@@ -18,45 +18,6 @@ const (
 	MINING_REWARD     = 1.00
 )
 
-//Blockの情報
-type Block struct {
-	timestamp    int64
-	nonce        int
-	previousHash [32]byte
-	transactions []*Transaction
-}
-
-//Blockのプリント用メソッド
-func (b *Block) Print() {
-	fmt.Printf("timestamp    : %d\n", b.timestamp)
-	fmt.Printf("nonce        : %d\n", b.nonce)
-	fmt.Printf("previousHash : %x\n", b.previousHash)
-	for _, t := range b.transactions {
-		t.Print()
-	}
-}
-
-//BlockのHash化
-func (b *Block) Hash() [32]byte {
-	m, _ := json.Marshal(b)
-	return sha256.Sum256(m)
-}
-
-//適切にJSONMarshalするメソッドオーバーライド（json.Marshalの上書き）小文字のフィールドはmarshalできないがjsonでは小文字で扱いたい
-func (b *Block) MarshalJSON() ([]byte, error) {
-	return json.Marshal(struct {
-		Timestamp    int64          `json:"timestamp"`
-		Nonce        int            `json:"nonce"`
-		PreviousHash string         `json:"previous_hash"`
-		Transactions []*Transaction `json:"transactions"`
-	}{
-		Timestamp:    b.timestamp,
-		Nonce:        b.nonce,
-		PreviousHash: fmt.Sprintf("%x", b.previousHash),
-		Transactions: b.transactions,
-	})
-}
-
 //新規Block作成
 func NewBlock(nonce int, previousHash [32]byte, transactions []*Transaction) *Block {
 	b := new(Block)
@@ -75,6 +36,7 @@ type BlockChain struct {
 	port            uint16
 }
 
+//chainのMarshal
 func (bc *BlockChain) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		Blocks []*Block `json:"chains"`
@@ -148,40 +110,6 @@ func (bc *BlockChain) Print() {
 		block.Print()
 	}
 	fmt.Printf("%s\n", strings.Repeat("*", 25))
-}
-
-//Transactionの情報
-type Transaction struct {
-	senderAddress    string
-	recipientAddress string
-	value            float32
-}
-
-//Transactionを作成するメソッド
-func NewTransaction(sender string, recipient string, value float32) *Transaction {
-	return &Transaction{sender, recipient, value}
-}
-
-//Transaction情報のプリント用メソッド
-func (t *Transaction) Print() {
-	fmt.Printf("%s Transaction %s\n", strings.Repeat("-", 6), strings.Repeat("-", 6))
-	fmt.Printf("senderAdress     : %s\n", t.senderAddress)
-	fmt.Printf("recipientAdress  : %s\n", t.recipientAddress)
-	fmt.Printf("value            : %.2f\n", t.value)
-	fmt.Println(strings.Repeat("-", 25))
-}
-
-//適切にJSONMarshalするメソッドオーバーライド（json.Marshalの上書き）小文字のメンバはmarshalできないがjsonでは小文字で扱いたい
-func (t *Transaction) MarshalJSON() ([]byte, error) {
-	return json.Marshal(struct {
-		SenderAddress    string  `json:"sender_address"`
-		RecipientAddress string  `json:"recipient_address"`
-		Value            float32 `json:"value"`
-	}{
-		SenderAddress:    t.senderAddress,
-		RecipientAddress: t.recipientAddress,
-		Value:            t.value,
-	})
 }
 
 //transactionのSignを認証するメソッド

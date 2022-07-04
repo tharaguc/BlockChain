@@ -20,6 +20,18 @@ type Wallet struct {
 	address    string
 }
 
+func (w *Wallet) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		Privatekey string `json:"private_key"`
+		PublicKey string `json:"public_key"`
+		Adddress string `json:"address"`
+	}{
+		Privatekey: w.PrivateKeyStr(),
+		PublicKey: w.PrivateKeyStr(),
+		Adddress: w.Address(),
+	})
+}
+
 //Wallet作成
 func NewWallet() *Wallet {
 	w := new(Wallet)

@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"gobc/wallet"
 	"html/template"
+	"io"
 	"log"
 	"net/http"
 	"path"
@@ -42,7 +44,21 @@ func (wsv *WalletServer) Index(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func (wsv *WalletServer) Wallet(w http.ResponseWriter, req *http.Request) {
+	switch req.Method {
+	case http.MethodPost:
+		w.Header().Add("Content-Type", "application/json")
+		myWallet := wallet.NewWallet()
+		m, _ := myWallet.MarshalJSON()
+		io.WriteString(w, string(m[:]))
+	default:
+		w.WriteHeader(http.StatusBadRequest)
+		log.Println("Error: Invalid http method")
+	}
+}
+
 func (wsv *WalletServer) Run() {
 	http.HandleFunc("/", wsv.Index)
+	http.HandleFunc("/wallet", wsv.Wallet)
 	log.Fatal(http.ListenAndServe("0.0.0.0:"+strconv.Itoa(int(wsv.Port())), nil))
 }

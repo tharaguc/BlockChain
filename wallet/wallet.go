@@ -23,12 +23,12 @@ type Wallet struct {
 func (w *Wallet) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		Privatekey string `json:"private_key"`
-		PublicKey string `json:"public_key"`
-		Adddress string `json:"address"`
+		PublicKey  string `json:"public_key"`
+		Adddress   string `json:"address"`
 	}{
 		Privatekey: w.PrivateKeyStr(),
-		PublicKey: w.PrivateKeyStr(),
-		Adddress: w.Address(),
+		PublicKey:  w.PublicKeyStr(),
+		Adddress:   w.Address(),
 	})
 }
 
@@ -131,4 +131,25 @@ func (t *Transaction) MarshalJSON() ([]byte, error) {
 		Recipient: t.recipientAddress,
 		Value:     t.value,
 	})
+}
+
+//requestの情報
+type TransactionRequest struct {
+	SenderPrivateKey *string `json:"sender_private_key"`
+	SenderPublicKey  *string `json:"sender_public_key"`
+	SenderAddress    *string `json:"sender_address"`
+	RecipientAddress *string `json:"recipient_address"`
+	Value            *string `json:"value"`
+}
+
+//requestのValidate
+func (req *TransactionRequest) Validate() bool {
+	if req.SenderPrivateKey == nil ||
+		req.SenderPublicKey == nil ||
+		req.SenderAddress == nil ||
+		req.RecipientAddress == nil ||
+		req.Value == nil {
+		return false
+	}
+	return true
 }

@@ -145,10 +145,10 @@ type TransactionRequest struct {
 //requestのValidate
 func (req *TransactionRequest) Validate() bool {
 	if *req.SenderPrivateKey == "" ||
-	*req.SenderPublicKey == "" ||
-	*req.SenderAddress == "" ||
-	*req.RecipientAddress == "" ||
-	*req.Value == "" {
+		*req.SenderPublicKey == "" ||
+		*req.SenderAddress == "" ||
+		*req.RecipientAddress == "" ||
+		*req.Value == "" {
 		return false
 	}
 	return true

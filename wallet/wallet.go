@@ -95,7 +95,7 @@ func (w *Wallet) PublicKey() *ecdsa.PublicKey {
 
 //publicKeyの文字を返すメソッド
 func (w *Wallet) PublicKeyStr() string {
-	return fmt.Sprintf("%x%x", w.publicKey.X.Bytes(), w.publicKey.Y.Bytes())
+	return fmt.Sprintf("%064x%064x", w.publicKey.X.Bytes(), w.publicKey.Y.Bytes())
 }
 
 //walletからのtransaction情報

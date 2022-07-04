@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"gobc/block"
 	"gobc/utils"
 	"gobc/wallet"
 	"html/template"
@@ -46,6 +48,7 @@ func (wsv *WalletServer) Index(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+//walletを作成
 func (wsv *WalletServer) Wallet(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case http.MethodPost:
@@ -59,6 +62,7 @@ func (wsv *WalletServer) Wallet(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+//clientからのrequestをもとにノードへrequestを送る
 func (wsv *WalletServer) CreateTransaction(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case http.MethodPost:
@@ -82,13 +86,33 @@ func (wsv *WalletServer) CreateTransaction(w http.ResponseWriter, req *http.Requ
 		if err != nil {
 			log.Println("Error: Parse error")
 			io.WriteString(w, string(utils.JsonStatus("fail")))
+			return
 		}
 		value32 := float32(value)
 
-		io.WriteString(w, string(utils.JsonStatus("success")))
-		fmt.Println(pubKey)
-		fmt.Println(priKey)
-		fmt.Println(value32)
+		w.Header().Add("Content-Type", "application/json")
+
+		transaction := wallet.NewTransaction(priKey, pubKey, *t.SenderAddress, *t.RecipientAddress, value32)
+		signature := transaction.GenSignature()
+		signStr := signature.String()
+
+		//ノードへのrequest
+		req := &block.TransactionRequest{
+			SenderPrivateKey: t.SenderPrivateKey,
+			SenderPublicKey:  t.SenderPublicKey,
+			SenderAddress:    t.SenderAddress,
+			RecipientAddress: t.RecipientAddress,
+			Value:            &value32,
+			Signature:        &signStr,
+		}
+		m, _ := json.Marshal(req)
+		buff := bytes.NewBuffer(m)
+		res, _ := http.Post(wsv.Gateway()+"/transactions", "application/json", buff)
+		if res.StatusCode == 201 {
+			io.WriteString(w, string(utils.JsonStatus("success")))
+			return
+		}
+		io.WriteString(w, string(utils.JsonStatus("fail")))
 
 	default:
 		w.WriteHeader(http.StatusBadRequest)

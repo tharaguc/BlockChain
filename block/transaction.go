@@ -39,3 +39,25 @@ func (t *Transaction) Print() {
 	fmt.Printf("value            : %.2f\n", t.value)
 	fmt.Println(strings.Repeat("-", 25))
 }
+
+//requestの情報
+type TransactionRequest struct {
+	SenderPrivateKey *string  `json:"sender_private_key"`
+	SenderPublicKey  *string  `json:"sender_public_key"`
+	SenderAddress    *string  `json:"sender_address"`
+	RecipientAddress *string  `json:"recipient_address"`
+	Value            *float32 `json:"value"`
+	Signature        *string  `json:"signature"`
+}
+
+//requestのValidate
+func (req *TransactionRequest) Validate() bool {
+	if *req.SenderPrivateKey == "" ||
+		*req.SenderPublicKey == "" ||
+		*req.SenderAddress == "" ||
+		*req.RecipientAddress == "" ||
+		req.Value == nil {
+		return false
+	}
+	return true
+}

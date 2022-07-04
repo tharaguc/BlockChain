@@ -144,11 +144,11 @@ type TransactionRequest struct {
 
 //requestのValidate
 func (req *TransactionRequest) Validate() bool {
-	if req.SenderPrivateKey == nil ||
-		req.SenderPublicKey == nil ||
-		req.SenderAddress == nil ||
-		req.RecipientAddress == nil ||
-		req.Value == nil {
+	if *req.SenderPrivateKey == "" ||
+	*req.SenderPublicKey == "" ||
+	*req.SenderAddress == "" ||
+	*req.RecipientAddress == "" ||
+	*req.Value == "" {
 		return false
 	}
 	return true

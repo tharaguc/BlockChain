@@ -8,14 +8,16 @@ import (
 	"gobc/utils"
 	"log"
 	"strings"
+	"sync"
 	"time"
 )
 
 const (
-	MINING_DIFFICULTY = 3
-	MINING_SENDER     = "NETWORK"
-	MINER_ADDRESS     = "Miner"
-	MINING_REWARD     = 1.00
+	MINING_DIFFICULTY  = 3
+	MINING_SENDER      = "NETWORK"
+	MINER_ADDRESS      = "Miner"
+	MINING_REWARD      = 1.00
+	MINIG_INTERVAL_SEC = 10
 )
 
 //新規Block作成
@@ -34,6 +36,7 @@ type BlockChain struct {
 	chain           []*Block
 	minerAddress    string
 	port            uint16
+	mutex           sync.Mutex
 }
 
 //chainのMarshal
@@ -58,13 +61,28 @@ func NewBlockChain(minerAddress string, port uint16) *BlockChain {
 
 //マイニングメソッド
 func (bc *BlockChain) Mining() bool {
+	bc.mutex.Lock() //必要？
+	defer bc.mutex.Unlock()
+
+	if len(bc.transactionPool) == 0 {
+		log.Println("Pool is empty")
+		return false
+	}
+
 	//ネットワークからマイナーへのTransaction追加
 	bc.AddTransaction(MINING_SENDER, bc.minerAddress, MINING_REWARD, nil, nil)
+	//PoW
 	nonce := bc.ProofOfWork()
 	preHash := bc.LastBlock().Hash()
 	bc.AddBlock(nonce, preHash)
 	log.Println("action=mining, status=success")
 	return true
+}
+
+//intervalごとにminingを開始
+func (bc *BlockChain) StartMining() {
+	bc.Mining()
+	_ = time.AfterFunc(time.Second*MINIG_INTERVAL_SEC, bc.StartMining)
 }
 
 //アドレスをもとにtransactionによる差分を計算

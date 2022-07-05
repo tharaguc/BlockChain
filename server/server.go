@@ -107,9 +107,49 @@ func (sv *Server) Transactions(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func (sv *Server) Mine(w http.ResponseWriter, req *http.Request) {
+	switch req.Method {
+	case http.MethodGet:
+		bc := sv.GetBlockChain()
+		isMined := bc.Mining()
+
+		var msg []byte
+		if isMined {
+			msg = utils.JsonStatus("success")
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
+			msg = utils.JsonStatus("fail")
+		}
+		w.Header().Add(definition.CONTENT_TYPE, definition.APP_JSON)
+		io.WriteString(w, string(msg))
+
+	default:
+		w.WriteHeader(http.StatusBadRequest)
+		log.Println("Error: Invalid http method")
+	}
+}
+
+func (sv *Server) StartMining(w http.ResponseWriter, req *http.Request) {
+	switch req.Method {
+	case http.MethodGet:
+		bc := sv.GetBlockChain()
+		bc.StartMining()
+
+		msg := utils.JsonStatus("start mining")
+		w.Header().Add(definition.CONTENT_TYPE, definition.APP_JSON)
+		io.WriteString(w, string(msg))
+
+	default:
+		w.WriteHeader(http.StatusBadRequest)
+		log.Println("Error: Invalid http method")
+	}
+}
+
 func (sv *Server) Run() {
 	http.HandleFunc("/", sv.GetChain)
 	http.HandleFunc("/transactions", sv.Transactions)
+	http.HandleFunc("/mine", sv.Mine)
+	http.HandleFunc("/mine/start", sv.StartMining)
 	fmt.Printf("Blockchain Server started on PORT: %v\n", sv.Port())
 	log.Fatal(http.ListenAndServe("0.0.0.0:"+strconv.Itoa(int(sv.Port())), nil))
 }

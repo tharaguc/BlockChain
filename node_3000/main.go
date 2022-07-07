@@ -10,7 +10,7 @@ func init() {
 }
 
 func main() {
-	port := flag.Uint("p", 5001, "TCP Port Number for Server")
+	port := flag.Uint("p", 3000, "TCP Port Number for Server")
 	flag.Parse()
 	app := NewServer(uint16(*port))
 	app.Run()

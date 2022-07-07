@@ -129,7 +129,7 @@ func (sv *Server) Transactions(w http.ResponseWriter, req *http.Request) {
 
 		w.Header().Add(def.CONTENT_TYPE, def.APP_JSON)
 		var msg []byte
-		if !isUpdated{
+		if !isUpdated {
 			w.WriteHeader(http.StatusBadRequest)
 			msg = utils.JsonStatus("fail")
 		} else {

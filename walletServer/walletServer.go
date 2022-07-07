@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"gobc/block"
-	"gobc/definition"
+	"gobc/def"
 	"gobc/utils"
 	"gobc/wallet"
 	"html/template"
@@ -53,7 +53,7 @@ func (wsv *WalletServer) Index(w http.ResponseWriter, req *http.Request) {
 func (wsv *WalletServer) Wallet(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case http.MethodPost:
-		w.Header().Add(definition.CONTENT_TYPE, definition.APP_JSON)
+		w.Header().Add(def.CONTENT_TYPE, def.APP_JSON)
 		newWallet := wallet.NewWallet() //walletの作成
 		m, _ := newWallet.MarshalJSON()
 		io.WriteString(w, string(m[:]))
@@ -91,7 +91,7 @@ func (wsv *WalletServer) CreateTransaction(w http.ResponseWriter, req *http.Requ
 		}
 		value32 := float32(value)
 
-		w.Header().Add(definition.CONTENT_TYPE, definition.APP_JSON)
+		w.Header().Add(def.CONTENT_TYPE, def.APP_JSON)
 
 		transaction := wallet.NewTransaction(priKey, pubKey, *t.SenderAddress, *t.RecipientAddress, value32)
 		signature := transaction.GenSignature()
@@ -108,7 +108,7 @@ func (wsv *WalletServer) CreateTransaction(w http.ResponseWriter, req *http.Requ
 		}
 		m, _ := json.Marshal(req)
 		buff := bytes.NewBuffer(m)
-		res, _ := http.Post(wsv.Gateway()+"/transactions", definition.APP_JSON, buff)
+		res, _ := http.Post(wsv.Gateway()+"/transactions", def.APP_JSON, buff)
 		if res.StatusCode == 201 {
 			io.WriteString(w, string(utils.JsonStatus("success")))
 			return
@@ -141,7 +141,7 @@ func (wsv *WalletServer) WalletAmount(w http.ResponseWriter, req *http.Request) 
 			return
 		}
 
-		w.Header().Add(definition.CONTENT_TYPE, definition.APP_JSON)
+		w.Header().Add(def.CONTENT_TYPE, def.APP_JSON)
 		if res.StatusCode == 200 {
 			dec := json.NewDecoder(res.Body)
 			var amountRes block.AmountResponse

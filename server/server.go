@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"gobc/block"
-	"gobc/definition"
+	"gobc/def"
 	"gobc/utils"
 	"gobc/wallet"
 	"io"
@@ -47,7 +47,7 @@ func (sv *Server) GetBlockChain() *block.BlockChain {
 func (sv *Server) GetChain(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case http.MethodGet:
-		w.Header().Add(definition.CONTENT_TYPE, definition.APP_JSON)
+		w.Header().Add(def.CONTENT_TYPE, def.APP_JSON)
 		bc := sv.GetBlockChain()
 		m, _ := bc.MarshalJSON()
 		io.WriteString(w, string(m[:]))
@@ -59,7 +59,7 @@ func (sv *Server) GetChain(w http.ResponseWriter, req *http.Request) {
 func (sv *Server) Transactions(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case http.MethodGet:
-		w.Header().Add(definition.CONTENT_TYPE, definition.APP_JSON)
+		w.Header().Add(def.CONTENT_TYPE, def.APP_JSON)
 		bc := sv.GetBlockChain()
 		transactions := bc.TransactionPool()
 		m, _ := json.Marshal(struct {
@@ -91,7 +91,7 @@ func (sv *Server) Transactions(w http.ResponseWriter, req *http.Request) {
 		bc := sv.GetBlockChain()
 		isCreated := bc.CreateTransaction(*t.SenderAddress, *t.RecipientAddress, *t.Value, pubKey, signature)
 
-		w.Header().Add(definition.CONTENT_TYPE, definition.APP_JSON)
+		w.Header().Add(def.CONTENT_TYPE, def.APP_JSON)
 		var msg []byte
 		if !isCreated {
 			w.WriteHeader(http.StatusBadRequest)
@@ -120,7 +120,7 @@ func (sv *Server) Mine(w http.ResponseWriter, req *http.Request) {
 			// w.WriteHeader(http.StatusBadRequest)
 			msg = utils.JsonStatus("fail")
 		}
-		w.Header().Add(definition.CONTENT_TYPE, definition.APP_JSON)
+		w.Header().Add(def.CONTENT_TYPE, def.APP_JSON)
 		io.WriteString(w, string(msg[:]))
 
 	default:
@@ -136,7 +136,7 @@ func (sv *Server) StartMining(w http.ResponseWriter, req *http.Request) {
 		bc.StartMining()
 
 		msg := utils.JsonStatus("start mining")
-		w.Header().Add(definition.CONTENT_TYPE, definition.APP_JSON)
+		w.Header().Add(def.CONTENT_TYPE, def.APP_JSON)
 		io.WriteString(w, string(msg))
 
 	default:
@@ -153,7 +153,7 @@ func (sv *Server) Amount(w http.ResponseWriter, req *http.Request) {
 		amount := bc.CalculateTotalAmount(address)
 		res := &block.AmountResponse{Amount: amount}
 		m, _ := res.MarshalJSON()
-		w.Header().Add(definition.CONTENT_TYPE, definition.APP_JSON)
+		w.Header().Add(def.CONTENT_TYPE, def.APP_JSON)
 		io.WriteString(w, string(m[:]))
 
 	default:
@@ -163,6 +163,7 @@ func (sv *Server) Amount(w http.ResponseWriter, req *http.Request) {
 }
 
 func (sv *Server) Run() {
+	sv.GetBlockChain().Run()
 	http.HandleFunc("/", sv.GetChain)
 	http.HandleFunc("/transactions", sv.Transactions)
 	http.HandleFunc("/mine", sv.Mine)

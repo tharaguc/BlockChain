@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"gobc/def"
 	"net"
 	"regexp"
 	"strconv"
@@ -43,4 +44,22 @@ func FindNeighbors(myHost string, myPort uint16, startIP uint8, endIP uint8, sta
 		}
 	}
 	return neighbors
+}
+
+//自身のIPアドレスを取得
+func GetHost() string {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return def.SELF_IP
+	}
+
+	for _, addr := range addrs {
+		ip, ok := addr.(*net.IPNet)
+		if ok && !ip.IP.IsLoopback() {
+			if ip.IP.To4() != nil {
+				return ip.IP.String()
+			}
+		}
+	}
+	return def.SELF_IP
 }

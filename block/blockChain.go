@@ -18,6 +18,12 @@ const (
 	MINER_ADDRESS      = "Miner"
 	MINING_REWARD      = 1.00
 	MINIG_INTERVAL_SEC = 10
+
+	PORT_RANGE_START       = 3000
+	PORT_RANGE_END         = 3005
+	IP_RANGE_START         = 0
+	IP_RANGE_END           = 1
+	NEIGHBOR_SYNC_TIME_SEC = 20
 )
 
 //新規Block作成
@@ -36,7 +42,10 @@ type BlockChain struct {
 	chain           []*Block
 	minerAddress    string
 	port            uint16
-	mutex           sync.Mutex
+	mutexMinig      sync.Mutex
+
+	neighbors    []string
+	mutexNeibors sync.Mutex
 }
 
 //chainのMarshal
@@ -59,10 +68,31 @@ func NewBlockChain(minerAddress string, port uint16) *BlockChain {
 	return bc
 }
 
+//他のノードを取得するメソッド
+func (bc *BlockChain) SetNeighbors() {
+	bc.neighbors = utils.FindNeighbors(utils.GetHost(), bc.port, IP_RANGE_START, IP_RANGE_END, PORT_RANGE_START, PORT_RANGE_END)
+	fmt.Println(bc.neighbors)
+}
+
+func (bc *BlockChain) SyncNeighbors() {
+	bc.mutexNeibors.Lock()
+	defer bc.mutexNeibors.Unlock()
+	bc.SetNeighbors()
+}
+
+func (bc *BlockChain) StartSyncNeighbors() {
+	bc.SetNeighbors()
+	_ = time.AfterFunc(time.Second*NEIGHBOR_SYNC_TIME_SEC, bc.StartSyncNeighbors)
+}
+
+func (bc *BlockChain) Run() {
+	bc.StartSyncNeighbors()
+}
+
 //マイニングメソッド
 func (bc *BlockChain) Mining() bool {
-	bc.mutex.Lock() //必要？
-	defer bc.mutex.Unlock()
+	bc.mutexMinig.Lock() //必要？ -> defficulty上がって時間かかる場合
+	defer bc.mutexMinig.Unlock()
 
 	if len(bc.transactionPool) == 0 {
 		log.Println("Pool is empty")

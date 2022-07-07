@@ -25,14 +25,21 @@ func StringToSignature(s string) *Signature {
 
 func StringToPublicKey(s string) *ecdsa.PublicKey {
 	bix, biy := StringToBigInts(s)
-	return &ecdsa.PublicKey{elliptic.P256(), &bix, &biy}
+	res := new(ecdsa.PublicKey)
+	res.Curve = elliptic.P256()
+	res.X = &bix
+	res.Y = &biy
+	return res
 }
 
 func StringToPrivateKey(s string, pubKey *ecdsa.PublicKey) *ecdsa.PrivateKey {
 	b, _ := hex.DecodeString(s)
 	var bi big.Int
 	_ = bi.SetBytes(b)
-	return &ecdsa.PrivateKey{*pubKey, &bi}
+	res := new(ecdsa.PrivateKey)
+	res.PublicKey = *pubKey
+	res.D = &bi
+	return res
 }
 
 func StringToBigInts(s string) (big.Int, big.Int) {

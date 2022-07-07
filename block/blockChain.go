@@ -104,6 +104,18 @@ func (bc *BlockChain) CalculateTotalAmount(address string) float32 {
 	return total
 }
 
+type AmountResponse struct {
+	Amount float32 `json:"amount"`
+}
+
+func (ar *AmountResponse) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		Amount float32 `json:"amount"`
+	}{
+		Amount: ar.Amount,
+	})
+}
+
 //BlockをChainに追加するメソッド
 func (bc *BlockChain) AddBlock(nonce int, previousHash [32]byte) *Block {
 	b := NewBlock(nonce, previousHash, bc.transactionPool)

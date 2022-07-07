@@ -145,11 +145,29 @@ func (sv *Server) StartMining(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func (sv *Server) Amount(w http.ResponseWriter, req *http.Request) {
+	switch req.Method {
+	case http.MethodGet:
+		bc := sv.GetBlockChain()
+		address := req.URL.Query().Get("address")
+		amount := bc.CalculateTotalAmount(address)
+		res := &block.AmountResponse{Amount: amount}
+		m, _ := res.MarshalJSON()
+		w.Header().Add(definition.CONTENT_TYPE, definition.APP_JSON)
+		io.WriteString(w, string(m[:]))
+
+	default:
+		log.Println("Error: Invalid http method")
+		w.WriteHeader(http.StatusBadRequest)
+	}
+}
+
 func (sv *Server) Run() {
 	http.HandleFunc("/", sv.GetChain)
 	http.HandleFunc("/transactions", sv.Transactions)
 	http.HandleFunc("/mine", sv.Mine)
 	http.HandleFunc("/mine/start", sv.StartMining)
+	http.HandleFunc("/amount", sv.Amount)
 	fmt.Printf("Blockchain Server started on PORT: %v\n", sv.Port())
 	log.Fatal(http.ListenAndServe("0.0.0.0:"+strconv.Itoa(int(sv.Port())), nil))
 }

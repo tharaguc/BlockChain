@@ -121,9 +121,59 @@ func (wsv *WalletServer) CreateTransaction(w http.ResponseWriter, req *http.Requ
 	}
 }
 
+func (wsv *WalletServer) WalletAmount(w http.ResponseWriter, req *http.Request) {
+	switch req.Method {
+	case http.MethodGet:
+		address := req.URL.Query().Get("address")
+		endpoint := fmt.Sprintf("%s/amount", wsv.Gateway())
+
+		//request情報の作成
+		client := &http.Client{}
+		req, _ := http.NewRequest("GET", endpoint, nil)
+		q := req.URL.Query()
+		q.Add("address", address)
+		req.URL.RawQuery = q.Encode()
+
+		res, err := client.Do(req)
+		if err != nil {
+			log.Printf("Error: %v", err)
+			io.WriteString(w, string(utils.JsonStatus("fail")))
+			return
+		}
+
+		w.Header().Add(definition.CONTENT_TYPE, definition.APP_JSON)
+		if res.StatusCode == 200 {
+			dec := json.NewDecoder(res.Body)
+			var amountRes block.AmountResponse
+			err := dec.Decode(&amountRes)
+			if err != nil {
+				log.Printf("Error: %v", err)
+				io.WriteString(w, string(utils.JsonStatus("fail")))
+				return
+			}
+
+			m, _ := json.Marshal(struct {
+				Message string  `json:"message"`
+				Amount  float32 `json:"amount"`
+			}{
+				Message: "success",
+				Amount:  amountRes.Amount,
+			})
+			io.WriteString(w, string(m[:]))
+		} else {
+			io.WriteString(w, string(utils.JsonStatus("fail")))
+		}
+
+	default:
+		log.Println("Error: Invalid http method")
+		w.WriteHeader(http.StatusBadRequest)
+	}
+}
+
 func (wsv *WalletServer) Run() {
 	http.HandleFunc("/", wsv.Index)
 	http.HandleFunc("/wallet", wsv.Wallet)
+	http.HandleFunc("/wallet/amount", wsv.WalletAmount)
 	http.HandleFunc("/transaction", wsv.CreateTransaction)
 	fmt.Printf("Wallet Server started on PORT: %v\n", wsv.Port())
 	log.Fatal(http.ListenAndServe("0.0.0.0:"+strconv.Itoa(int(wsv.Port())), nil))

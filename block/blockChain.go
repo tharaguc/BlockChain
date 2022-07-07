@@ -289,3 +289,23 @@ func (bc *BlockChain) ProofOfWork() int {
 	}
 	return nonce
 }
+
+//正しいchainかどうか確認するメソッド
+func (bc *BlockChain) VaildChain(chain []*Block) bool {
+	previousBlock := chain[0]
+	currentIndex := 1
+	for currentIndex < len(chain) {
+		b := chain[currentIndex]
+		if b.previousHash != previousBlock.Hash() {
+			return false
+		}
+
+		if !bc.IsValidProof(b.Nonce(), b.PreviousHash(), b.Transactions(), MINING_DIFFICULTY) {
+			return false
+		}
+
+		previousBlock = b
+		currentIndex += 1
+	}
+	return true
+}

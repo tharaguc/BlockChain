@@ -55,10 +55,27 @@ type BlockChain struct {
 //chainのMarshal
 func (bc *BlockChain) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
-		Blocks []*Block `json:"chains"`
+		Blocks []*Block `json:"chain"`
 	}{
 		Blocks: bc.chain,
 	})
+}
+
+func (bc *BlockChain) Chain() []*Block {
+	return bc.chain
+}
+
+//chainのUnmarshal
+func (bc *BlockChain) UnmarshalJSON(data []byte) error {
+	v := &struct {
+		Blocks *[]*Block `json:"chain"`
+	}{
+		Blocks: &bc.chain,
+	}
+	if err := json.Unmarshal(data, &v); err != nil {
+		return err
+	}
+	return nil
 }
 
 //BlockChainの作成（初期化）
@@ -77,7 +94,7 @@ func (bc *BlockChain) SetNeighbors() {
 	bc.neighbors = utils.FindNeighbors(utils.GetHost(), bc.port, IP_RANGE_START, IP_RANGE_END, PORT_RANGE_START, PORT_RANGE_END)
 	color.Cyan("NODES")
 	for _, node := range bc.neighbors {
-		color.HiMagenta("> "+node)
+		color.HiMagenta("> " + node)
 	}
 }
 
@@ -215,11 +232,11 @@ func (bc *BlockChain) CreateTransaction(sender string, recipient string, value f
 			pubKeyStr := fmt.Sprintf("%064x%064x", senderPubKey.X.Bytes(), senderPubKey.Y.Bytes())
 			signStr := s.String()
 			tr := &TransactionRequest{
-				SenderPublicKey: &pubKeyStr,
-				SenderAddress: &sender,
+				SenderPublicKey:  &pubKeyStr,
+				SenderAddress:    &sender,
 				RecipientAddress: &recipient,
-				Value: &value,
-				Signature: &signStr,
+				Value:            &value,
+				Signature:        &signStr,
 			}
 			m, _ := json.Marshal(tr)
 			buff := bytes.NewBuffer(m)
@@ -308,4 +325,33 @@ func (bc *BlockChain) VaildChain(chain []*Block) bool {
 		currentIndex += 1
 	}
 	return true
+}
+
+func (bc *BlockChain) ResolveConflicts() bool {
+	var longestChain []*Block = nil
+	maxLengh := len(bc.chain)
+
+	for _, n := range bc.neighbors {
+		endpoint := fmt.Sprintf("http://%s/chain", n)
+		response, _ := http.Get(endpoint)
+		if response.StatusCode == 200 {
+			var bc BlockChain
+			dec := json.NewDecoder(response.Body)
+			_ = dec.Decode(&bc)
+
+			chain := bc.Chain()
+
+			if len(chain) > maxLengh && bc.VaildChain(chain) {
+				maxLengh = len(chain)
+				longestChain = chain
+			}
+		}
+	}
+	if longestChain != nil {
+		bc.chain = longestChain
+		log.Println("Resolve conflicts replaced")
+		return true
+	}
+	log.Println("Resolve conflicts not replaced")
+	return false
 }

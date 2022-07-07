@@ -117,11 +117,11 @@ func (sv *Server) Mine(w http.ResponseWriter, req *http.Request) {
 		if isMined {
 			msg = utils.JsonStatus("success")
 		} else {
-			w.WriteHeader(http.StatusBadRequest)
+			// w.WriteHeader(http.StatusBadRequest)
 			msg = utils.JsonStatus("fail")
 		}
 		w.Header().Add(definition.CONTENT_TYPE, definition.APP_JSON)
-		io.WriteString(w, string(msg))
+		io.WriteString(w, string(msg[:]))
 
 	default:
 		w.WriteHeader(http.StatusBadRequest)

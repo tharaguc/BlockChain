@@ -6,7 +6,10 @@ import (
 	"net"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
+
+	"github.com/fatih/color"
 )
 
 func IsFoundHost(host string, port uint16) bool {
@@ -17,6 +20,7 @@ func IsFoundHost(host string, port uint16) bool {
 		fmt.Printf("%s %v\n", target, err)
 		return false
 	}
+	color.Green(target)
 	return true
 }
 
@@ -34,6 +38,7 @@ func FindNeighbors(myHost string, myPort uint16, startIP uint8, endIP uint8, sta
 	lastIP, _ := strconv.Atoi(m[len(m)-1])
 	neighbors := make([]string, 0)
 
+	color.Cyan("\n"+strings.Repeat("=", 10)+"Serching for other nodes"+strings.Repeat("=", 10))
 	for port := startPort; port <= endPort; port += 1 {
 		for ip := startIP; ip <= endIP; ip += 1 {
 			guessHost := fmt.Sprintf("%s%d", prefixHost, lastIP+int(ip))
@@ -43,6 +48,7 @@ func FindNeighbors(myHost string, myPort uint16, startIP uint8, endIP uint8, sta
 			}
 		}
 	}
+	color.Cyan(strings.Repeat("=", 10)+"Serching for other nodes finished"+strings.Repeat("=", 10)+"\n")
 	return neighbors
 }
 

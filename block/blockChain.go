@@ -10,6 +10,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/fatih/color"
 )
 
 const (
@@ -71,7 +73,10 @@ func NewBlockChain(minerAddress string, port uint16) *BlockChain {
 //他のノードを取得するメソッド
 func (bc *BlockChain) SetNeighbors() {
 	bc.neighbors = utils.FindNeighbors(utils.GetHost(), bc.port, IP_RANGE_START, IP_RANGE_END, PORT_RANGE_START, PORT_RANGE_END)
-	fmt.Println(bc.neighbors)
+	color.Cyan("NODES")
+	for _, node := range bc.neighbors {
+		color.HiMagenta("> "+node)
+	}
 }
 
 func (bc *BlockChain) SyncNeighbors() {

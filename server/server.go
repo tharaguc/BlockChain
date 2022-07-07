@@ -57,8 +57,10 @@ func (sv *Server) GetChain(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+//transactionに関するAPI
 func (sv *Server) Transactions(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
+	//transaction情報を返す
 	case http.MethodGet:
 		w.Header().Add(def.CONTENT_TYPE, def.APP_JSON)
 		bc := sv.GetBlockChain()
@@ -72,6 +74,7 @@ func (sv *Server) Transactions(w http.ResponseWriter, req *http.Request) {
 		})
 		io.WriteString(w, string(m[:]))
 
+	//transactionの登録
 	case http.MethodPost:
 		dec := json.NewDecoder(req.Body)
 		var t block.TransactionRequest
@@ -102,6 +105,43 @@ func (sv *Server) Transactions(w http.ResponseWriter, req *http.Request) {
 			msg = utils.JsonStatus("success")
 		}
 		io.WriteString(w, string(msg))
+
+	//transactionの同期
+	case http.MethodPut:
+		dec := json.NewDecoder(req.Body)
+		var t block.TransactionRequest
+		err := dec.Decode(&t)
+		if err != nil {
+			log.Printf("Error: %v", err)
+			io.WriteString(w, string(utils.JsonStatus("fail")))
+			return
+		}
+		if !t.Validate() {
+			log.Println("Error: missing fields")
+			io.WriteString(w, string(utils.JsonStatus("fail")))
+			return
+		}
+
+		pubKey := utils.StringToPublicKey(*t.SenderPublicKey)
+		signature := utils.StringToSignature(*t.Signature)
+		bc := sv.GetBlockChain()
+		isUpdated := bc.AddTransaction(*t.SenderAddress, *t.RecipientAddress, *t.Value, pubKey, signature)
+
+		w.Header().Add(def.CONTENT_TYPE, def.APP_JSON)
+		var msg []byte
+		if !isUpdated{
+			w.WriteHeader(http.StatusBadRequest)
+			msg = utils.JsonStatus("fail")
+		} else {
+			msg = utils.JsonStatus("success")
+		}
+		io.WriteString(w, string(msg))
+
+	//transactionPoolをクリア
+	case http.MethodDelete:
+		bc := sv.GetBlockChain()
+		bc.ClearTransactionPool()
+		io.WriteString(w, string(utils.JsonStatus("cleared pool")))
 
 	default:
 		log.Println("Error: Invalid Method")
@@ -146,6 +186,7 @@ func (sv *Server) StartMining(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+//queryのaddressに対して残高を返すAPI
 func (sv *Server) Amount(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case http.MethodGet:

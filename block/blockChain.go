@@ -1,12 +1,14 @@
 package block
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"gobc/utils"
 	"log"
+	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -156,6 +158,15 @@ func (bc *BlockChain) AddBlock(nonce int, previousHash [32]byte) *Block {
 	b := NewBlock(nonce, previousHash, bc.transactionPool)
 	bc.chain = append(bc.chain, b)
 	bc.transactionPool = []*Transaction{} //Poolを初期化
+
+	//他のノードのPoolも初期化
+	for _, node := range bc.neighbors {
+		endpoint := fmt.Sprintf("http://%s/transactions", node)
+		client := &http.Client{}
+		req, _ := http.NewRequest("DELETE", endpoint, nil)
+		res, _ := client.Do(req)
+		log.Println(res)
+	}
 	return b
 }
 
@@ -167,6 +178,11 @@ func (bc *BlockChain) LastBlock() *Block {
 //transactionPoolを返すメソッド
 func (bc *BlockChain) TransactionPool() []*Transaction {
 	return bc.transactionPool
+}
+
+//transactionPoolを空にするメソッド
+func (bc *BlockChain) ClearTransactionPool() {
+	bc.transactionPool = bc.transactionPool[:0]
 }
 
 //BlockChainのプリント用メソッド
@@ -192,8 +208,29 @@ func (bc *BlockChain) VerifyTransactionSign(senderPubKey *ecdsa.PublicKey, s *ut
 //Transactionを追加し他のノードとシンクさせるメソッド
 func (bc *BlockChain) CreateTransaction(sender string, recipient string, value float32, senderPubKey *ecdsa.PublicKey, s *utils.Signature) bool {
 	isTransacted := bc.AddTransaction(sender, recipient, value, senderPubKey, s)
-	//todo
-	//sync other nodes
+
+	//他のノードと同期
+	if isTransacted {
+		for _, node := range bc.neighbors {
+			pubKeyStr := fmt.Sprintf("%064x%064x", senderPubKey.X.Bytes(), senderPubKey.Y.Bytes())
+			signStr := s.String()
+			tr := &TransactionRequest{
+				SenderPublicKey: &pubKeyStr,
+				SenderAddress: &sender,
+				RecipientAddress: &recipient,
+				Value: &value,
+				Signature: &signStr,
+			}
+			m, _ := json.Marshal(tr)
+			buff := bytes.NewBuffer(m)
+			endpoint := fmt.Sprintf("http://%s/transactions", node)
+			client := &http.Client{}
+			req, _ := http.NewRequest("PUT", endpoint, buff)
+			res, _ := client.Do(req)
+			log.Println(res)
+		}
+	}
+
 	return isTransacted
 }
 

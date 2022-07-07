@@ -14,6 +14,8 @@ import (
 	"net/http"
 	"path"
 	"strconv"
+
+	"github.com/fatih/color"
 )
 
 const tempDir = "templates"
@@ -99,7 +101,6 @@ func (wsv *WalletServer) CreateTransaction(w http.ResponseWriter, req *http.Requ
 
 		//ノードへのrequest
 		req := &block.TransactionRequest{
-			SenderPrivateKey: t.SenderPrivateKey,
 			SenderPublicKey:  t.SenderPublicKey,
 			SenderAddress:    t.SenderAddress,
 			RecipientAddress: t.RecipientAddress,
@@ -175,6 +176,6 @@ func (wsv *WalletServer) Run() {
 	http.HandleFunc("/wallet", wsv.Wallet)
 	http.HandleFunc("/wallet/amount", wsv.WalletAmount)
 	http.HandleFunc("/transaction", wsv.CreateTransaction)
-	fmt.Printf("Wallet Server started on PORT: %v\n", wsv.Port())
+	color.Green("Wallet Server started on PORT: %v\n", wsv.Port())
 	log.Fatal(http.ListenAndServe("0.0.0.0:"+strconv.Itoa(int(wsv.Port())), nil))
 }

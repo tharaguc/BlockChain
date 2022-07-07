@@ -42,7 +42,6 @@ func (t *Transaction) Print() {
 
 //requestの情報
 type TransactionRequest struct {
-	SenderPrivateKey *string  `json:"sender_private_key"`
 	SenderPublicKey  *string  `json:"sender_public_key"`
 	SenderAddress    *string  `json:"sender_address"`
 	RecipientAddress *string  `json:"recipient_address"`
@@ -52,10 +51,10 @@ type TransactionRequest struct {
 
 //requestのValidate
 func (req *TransactionRequest) Validate() bool {
-	if *req.SenderPrivateKey == "" ||
-		*req.SenderPublicKey == "" ||
+	if *req.SenderPublicKey == "" ||
 		*req.SenderAddress == "" ||
 		*req.RecipientAddress == "" ||
+		*req.Signature == "" ||
 		req.Value == nil {
 		return false
 	}

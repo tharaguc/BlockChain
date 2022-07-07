@@ -113,6 +113,7 @@ func (bc *BlockChain) StartSyncNeighbors() {
 func (bc *BlockChain) Run() {
 	bc.ResolveConflicts()
 	bc.StartSyncNeighbors()
+	bc.StartMining()
 }
 
 //マイニングメソッド
@@ -120,10 +121,10 @@ func (bc *BlockChain) Mining() bool {
 	bc.mutexMinig.Lock() //必要？ -> defficulty上がって時間かかる場合
 	defer bc.mutexMinig.Unlock()
 
-	if len(bc.transactionPool) == 0 {
-		log.Println("Pool is empty")
-		return false
-	}
+	// if len(bc.transactionPool) == 0 {
+	// 	log.Println("Pool is empty")
+	// 	return false
+	// }
 
 	//ネットワークからマイナーへのTransaction追加
 	bc.AddTransaction(MINING_SENDER, bc.minerAddress, MINING_REWARD, nil, nil)
@@ -274,12 +275,10 @@ func (bc *BlockChain) AddTransaction(sender string, recipient string, value floa
 
 	if bc.VerifyTransactionSign(senderPubKey, s, t) {
 
-		/*
-			if bc.CalculateTotalAmount(sender) < value {
-				log.Println("Error: Not enough balance in a wallet")
-				return false
-			}
-		*/
+		if bc.CalculateTotalAmount(sender) < value {
+			log.Println("Error: Not enough balance in a wallet")
+			return false
+		}
 
 		bc.transactionPool = append(bc.transactionPool, t)
 		return true

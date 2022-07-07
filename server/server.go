@@ -204,6 +204,26 @@ func (sv *Server) Amount(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+//コンセンサスAPI
+func (sv *Server) Consensus(w http.ResponseWriter, req *http.Request) {
+	switch req.Method {
+	case http.MethodPut:
+		bc := sv.GetBlockChain()
+		replaced := bc.ResolveConflicts()
+
+		w.Header().Add(def.CONTENT_TYPE, def.APP_JSON)
+		if replaced {
+			io.WriteString(w, string(utils.JsonStatus("suscess")))
+		} else {
+			io.WriteString(w, string(utils.JsonStatus("fail")))
+		}
+
+	default:
+		log.Println("Error: Invalid http method")
+		w.WriteHeader(http.StatusBadRequest)
+	}
+}
+
 func (sv *Server) Run() {
 	sv.GetBlockChain().Run()
 	http.HandleFunc("/", sv.GetChain)
@@ -211,6 +231,7 @@ func (sv *Server) Run() {
 	http.HandleFunc("/mine", sv.Mine)
 	http.HandleFunc("/mine/start", sv.StartMining)
 	http.HandleFunc("/amount", sv.Amount)
+	http.HandleFunc("/consensus", sv.Consensus)
 	color.Green("Blockchain Server started on PORT: %v\n", sv.Port())
 	log.Fatal(http.ListenAndServe("0.0.0.0:"+strconv.Itoa(int(sv.Port())), nil))
 }

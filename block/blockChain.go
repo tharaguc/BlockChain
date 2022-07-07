@@ -109,7 +109,9 @@ func (bc *BlockChain) StartSyncNeighbors() {
 	_ = time.AfterFunc(time.Second*NEIGHBOR_SYNC_TIME_SEC, bc.StartSyncNeighbors)
 }
 
+//ノード立ち上げ時のメソッド
 func (bc *BlockChain) Run() {
+	bc.ResolveConflicts()
 	bc.StartSyncNeighbors()
 }
 
@@ -130,6 +132,15 @@ func (bc *BlockChain) Mining() bool {
 	preHash := bc.LastBlock().Hash()
 	bc.AddBlock(nonce, preHash)
 	log.Println("action=mining, status=success")
+
+	for _, node := range bc.neighbors {
+		endpoint := fmt.Sprintf("http://%s/consensus", node)
+		client := &http.Client{}
+		req, _ := http.NewRequest("PUT", endpoint, nil)
+		response, _ := client.Do(req)
+		log.Println(response)
+	}
+
 	return true
 }
 
@@ -327,12 +338,13 @@ func (bc *BlockChain) VaildChain(chain []*Block) bool {
 	return true
 }
 
+//長いchainに置き換えるメソッド
 func (bc *BlockChain) ResolveConflicts() bool {
 	var longestChain []*Block = nil
 	maxLengh := len(bc.chain)
 
-	for _, n := range bc.neighbors {
-		endpoint := fmt.Sprintf("http://%s/chain", n)
+	for _, node := range bc.neighbors {
+		endpoint := fmt.Sprintf("http://%s/chain", node)
 		response, _ := http.Get(endpoint)
 		if response.StatusCode == 200 {
 			var bc BlockChain

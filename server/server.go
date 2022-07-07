@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"gobc/block"
 	"gobc/def"
 	"gobc/utils"
@@ -11,6 +10,8 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+
+	"github.com/fatih/color"
 )
 
 //毎回reqest出さない
@@ -169,6 +170,6 @@ func (sv *Server) Run() {
 	http.HandleFunc("/mine", sv.Mine)
 	http.HandleFunc("/mine/start", sv.StartMining)
 	http.HandleFunc("/amount", sv.Amount)
-	fmt.Printf("Blockchain Server started on PORT: %v\n", sv.Port())
+	color.Green("Blockchain Server started on PORT: %v\n", sv.Port())
 	log.Fatal(http.ListenAndServe("0.0.0.0:"+strconv.Itoa(int(sv.Port())), nil))
 }
